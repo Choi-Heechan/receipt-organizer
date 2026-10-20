@@ -1,0 +1,13 @@
+.superpowers/
+__pycache__/
+*.pyc
+.DS_Store
+# 실제 영수증·결과물은 커밋하지 않음
+*.jpg
+*.jpeg
+*.png
+*.pdf
+*.xlsx
+receipt_*.json
+dashboard_*.html
+.receipt_readings.json
