@@ -62,6 +62,14 @@ class ScanFolderTest(unittest.TestCase):
         self.assertEqual(r["folders"][0]["files"], ["1.jpg"])
         self.assertEqual(r["loose_files"], [])
 
+    def test_single_mode_ignores_own_outputs(self):
+        for rel in ["1.jpg", "receipt_root_20261020.xlsx", "list_receipt_20261020_2.xlsx",
+                    "receipt_20261020.json", "dashboard_20261020.html"]:
+            self.touch(rel)
+        r = scan(self.root)
+        self.assertEqual(r["folders"][0]["files"], ["1.jpg"])
+        self.assertEqual(r["skipped"], [])
+
     def test_japanese_and_space_names(self):
         self.touch("株式会社 A/領収書 1.jpg")
         r = scan(self.root)
