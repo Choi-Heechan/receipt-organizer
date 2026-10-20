@@ -147,4 +147,4 @@
 - 플러그인·저장소 이름(가칭 `receipt-organizer`), 디렉터리 구조, 스크립트 분할.
 - 대시보드 시각 디자인 세부.
 - 판독 프롬프트 문구, 원호(令和) 변환 등 판독 요령(기존 SKILL.md 참고).
-- 테스트 방법(샘플 폴더 `~/Library/CloudStorage/Dropbox/00.claude_testfolder/PDF_test` 사용 가능).
+- 테스트 방법(샘플 폴더 `~/sample-receipts` 사용 가능).

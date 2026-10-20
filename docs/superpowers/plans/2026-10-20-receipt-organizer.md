@@ -270,8 +270,8 @@ tests/test_*.py
 
 **Files:** 없음(검증만). 결과물은 커밋하지 않는다.
 
-- [ ] **Step 1: 샘플 복사** — `~/Library/CloudStorage/Dropbox/00.claude_testfolder/PDF_test/株式会社A`, `株式会社B`만 스크래치 디렉터리의 `PDF_e2e/`로 복사(원본 폴더에 쓰지 않음).
-- [ ] **Step 2: 로컬 마켓플레이스 설치** — 사용자에게 `/plugin marketplace add /Users/ai-work/workspace_chc/pdf-reads-form` → `/plugin install receipt-organizer@receipt-tools` 실행을 요청(또는 `claude --plugin-dir plugins/receipt-organizer`로 새 세션).
+- [ ] **Step 1: 샘플 복사** — `~/sample-receipts/株式会社A`, `株式会社B`만 스크래치 디렉터리의 `PDF_e2e/`로 복사(원본 폴더에 쓰지 않음).
+- [ ] **Step 2: 로컬 마켓플레이스 설치** — 사용자에게 `/plugin marketplace add /path/to/receipt-organizer` → `/plugin install receipt-organizer@receipt-tools` 실행을 요청(또는 `claude --plugin-dir plugins/receipt-organizer`로 새 세션).
 - [ ] **Step 3: 스킬 실행** — 「영수증 정리해줘 <PDF_e2e 경로>」. Expected: 11건 처리, 4종+2개 파일 생성.
 - [ ] **Step 4: 결과 대조** — 생성된 개인별 엑셀 값을 기존 샘플 `receipt_株式会社A_20260625.xlsx`·`B`와 비교(금액·등록번호 일치 여부, 차이는 要確認 표시 여부 확인). 엑셀을 Excel/Numbers로 열어 경고 없이 열리는지, 합계 행 표시 확인.
 - [ ] **Step 5: 대시보드 확인** — 브라우저 패널에서 html 열어 카드 2개·펼침·색 확인.
