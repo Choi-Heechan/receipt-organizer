@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>領収書ダッシュボード</title>
+<style>
+:root{--bg:#f5f7fa;--fg:#1f2933;--muted:#8a94a0;--card:#fff;--line:#d5dbe3;--accent:#1f4e79;--head:#1f4e79;--headfg:#fff;--alt:#d6e4f0;--err-bg:#ffe0e0;--err-fg:#cc0000;--rev-bg:#fff2a0;--rev-fg:#1f2933}
+@media (prefers-color-scheme:dark){:root{--bg:#14181d;--fg:#e6e9ed;--muted:#8d97a3;--card:#1e242b;--line:#35404b;--accent:#6fa8dc;--head:#2b5c8a;--headfg:#fff;--alt:#262f38;--err-bg:#5a2326;--err-fg:#ff9a9a;--rev-bg:#5a4f12;--rev-fg:#ffeb8a}}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif;line-height:1.5}
+header{max-width:1100px;margin:0 auto 16px}
+h1{font-size:20px;margin:0 0 2px}
+.meta{color:var(--muted);font-size:13px}
+.summary{font-size:16px;font-weight:600;margin-top:10px}
+main{max-width:1100px;margin:0 auto}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.card:hover{border-color:var(--accent)}
+.card.open{border:2px solid var(--accent);padding:11px}
+.card .name{font-weight:700;overflow-wrap:anywhere}
+.card .amount{font-size:22px;font-weight:700;margin:2px 0}
+.card .counts{font-size:13px}
+.zero{color:var(--muted)}
+.bad{color:var(--err-fg);font-weight:600}
+.warn{font-weight:600}
+.card .toggle{font-size:12px;color:var(--accent);margin-top:4px}
+.detail{background:var(--card);border:1px solid var(--accent);border-radius:8px;margin-top:12px;padding:8px;overflow-x:auto}
+.detail h2{font-size:15px;margin:4px 4px 8px}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
+th{background:var(--head);color:var(--headfg);text-align:left;padding:6px 8px;white-space:nowrap}
+td{padding:6px 8px;border-bottom:1px solid var(--line)}
+tbody tr:nth-child(even){background:var(--alt)}
+td.num{text-align:right;white-space:nowrap}
+td.err{background:var(--err-bg);color:var(--err-fg)}
+td.rev{background:var(--rev-bg);color:var(--rev-fg)}
+.empty{padding:12px;color:var(--muted)}
+[hidden]{display:none!important}
+@media (max-width:480px){.cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<h1>領収書ダッシュボード</h1>
+<div class="meta" id="meta"></div>
+<div class="summary" id="summary"></div>
+</header>
+<main>
+<div class="cards" id="cards"></div>
+<section class="detail" id="detail" hidden></section>
+</main>
+<script>
+(function(){
+var REPORT=/*__REPORT_DATA__*/null;
+var ERROR="読み取りエラー";
+if(!REPORT){return;}
+function el(tag,cls,text){var e=document.createElement(tag);if(cls){e.className=cls;}if(text!==undefined){e.textContent=text;}return e;}
+function yen(n){return typeof n==="number"?"¥"+n.toLocaleString("en-US"):String(n);}
+function countSpan(label,n,cls){return el("span",n>0?cls:"zero",label+" "+n+"件");}
+var t=REPORT.totals;
+document.getElementById("meta").textContent=REPORT.root_folder+" ・ "+REPORT.generated_at;
+document.getElementById("summary").textContent="総額 "+yen(t.amount)+" ・ "+t.files+"件 ・ 読み取りエラー "+t.errors+"件 ・ 要確認 "+t.reviews+"件";
+var folders=REPORT.folders.slice().sort(function(a,b){return b.total_amount-a.total_amount;});
+var cards=document.getElementById("cards"),detail=document.getElementById("detail"),openCard=null;
+var FIELDS=["date","store","amount","payment","reg_no","tax_rate"];
+var HEADS=["日付","店名","金額","支払区分","登録番号","消費税率","備考"];
+function buildTable(f){
+  var box=document.createDocumentFragment();
+  box.appendChild(el("h2",null,f.folder));
+  if(!f.receipts.length){box.appendChild(el("div","empty","領収書なし"));return box;}
+  var table=el("table"),thead=el("thead"),hr=el("tr"),tb=el("tbody");
+  HEADS.forEach(function(h){hr.appendChild(el("th",null,h));});
+  thead.appendChild(hr);table.appendChild(thead);
+  f.receipts.forEach(function(r){
+    var tr=el("tr");
+    FIELDS.forEach(function(k){
+      var v=r[k],td=el("td",k==="amount"?"num":"",k==="amount"?yen(v):String(v));
+      if(v===ERROR){td.classList.add("err");}
+      else if(r.needs_review.indexOf(k)>=0){td.classList.add("rev");}
+      tr.appendChild(td);
+    });
+    tr.appendChild(el("td",null,r.remarks||""));
+    tb.appendChild(tr);
+  });
+  table.appendChild(tb);box.appendChild(table);return box;
+}
+folders.forEach(function(f){
+  var card=el("button","card");card.type="button";
+  card.appendChild(el("div","name",f.folder));
+  card.appendChild(el("div","amount",yen(f.total_amount)));
+  var counts=el("div","counts");
+  counts.appendChild(document.createTextNode(f.file_count+"件 ・ "));
+  counts.appendChild(countSpan("エラー",f.error_count,"bad"));
+  counts.appendChild(document.createTextNode(" ・ "));
+  counts.appendChild(countSpan("要確認",f.review_count,"warn"));
+  card.appendChild(counts);
+  var tg=el("div","toggle","▶ 開く");card.appendChild(tg);
+  card.addEventListener("click",function(){
+    var wasOpen=openCard===card;
+    if(openCard){openCard.classList.remove("open");openCard.lastChild.textContent="▶ 開く";}
+    if(wasOpen){openCard=null;detail.hidden=true;return;}
+    openCard=card;card.classList.add("open");tg.textContent="▼ 閉じる";
+    while(detail.firstChild){detail.removeChild(detail.firstChild);}
+    detail.appendChild(buildTable(f));detail.hidden=false;
+  });
+  cards.appendChild(card);
+});
+})();
+</script>
+</body>
+</html>

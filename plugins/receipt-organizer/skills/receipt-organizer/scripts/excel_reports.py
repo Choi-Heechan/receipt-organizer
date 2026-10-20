@@ -26,7 +26,7 @@ def _plain(alt, money=False):
     return base + "_alt" if alt else base
 
 
-def _remarks(receipt):
+def remarks(receipt):
     parts = []
     review = receipt["needs_review"]
     if review:
@@ -40,7 +40,7 @@ def _folder_row(receipt, alt):
     row = []
     values = [receipt["no"], receipt["filename"], receipt["date"], receipt["store"],
               receipt["reg_no"], receipt["amount"], receipt["tax_rate"],
-              receipt["payment"], _remarks(receipt)]
+              receipt["payment"], remarks(receipt)]
     for value, field in zip(values, _FOLDER_FIELDS):
         money = field == "amount"
         if value == ERROR:

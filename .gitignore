@@ -9,5 +9,5 @@ __pycache__/
 *.pdf
 *.xlsx
 receipt_*.json
-dashboard_*.html
+dashboard_[0-9]*.html
 .receipt_readings.json
