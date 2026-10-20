@@ -28,7 +28,7 @@
 Claude Code에서 다음을 입력합니다(GitHub 계정 불필요).
 
 ```
-/plugin marketplace add <GitHub사용자>/<저장소>
+/plugin marketplace add Choi-Heechan/receipt-organizer
 /plugin install receipt-organizer@receipt-tools
 ```
 
@@ -105,7 +105,7 @@ Claude Code에서 상위 폴더 경로와 함께 요청합니다.
 Claude Code で次を入力します（GitHub アカウント不要）。
 
 ```
-/plugin marketplace add <GitHub사용자>/<저장소>
+/plugin marketplace add Choi-Heechan/receipt-organizer
 /plugin install receipt-organizer@receipt-tools
 ```
 
