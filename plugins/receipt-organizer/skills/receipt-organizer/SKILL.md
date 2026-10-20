@@ -12,7 +12,9 @@ description: |
 # Receipt organizer
 
 You read receipt files yourself (with the Read tool) and the bundled Python scripts turn your readings into
-Excel files, a JSON file and an HTML dashboard. Nothing is sent outside the PC. Follow the steps in order.
+Excel files, a JSON file and an HTML dashboard. The plugin uses no extra server or OCR service: receipt
+images are read by you (Claude) exactly as in normal Claude use, and the scripts run locally on the PC.
+Follow the steps in order.
 
 **Paths.** When this skill loads you are shown `Base directory for this skill: <path>`. That path is
 `<skill dir>`; the scripts are in `<skill dir>/scripts/`. `<root>` is the folder the user named.
@@ -79,10 +81,18 @@ JSON for the final report (`empty_folders`, `skipped`, `loose_files`).
 
 ## Step 4 — Read every receipt
 
+**Resume check (do this first).** If `<root>/.receipt_readings.json` exists, Read it. Tell the user how many
+folders it already contains (e.g. 「前回の読み取り結果（2 フォルダ分）が残っています。続きから再開しますか、
+最初からやり直しますか？」) and wait for the answer:
+- 再開 / resume → keep its folders and skip every folder that is already complete in it (all of that
+  folder's scan `files` present); read only the remaining folders.
+- やり直し / start over → ignore its contents and read all folders.
+Always Read the file before your first Write to it (the Write tool needs this when the file exists).
+
 Process folders in scan order. Inside a folder, open the files **one at a time** with the Read tool
 (full path = folder `path` + the relative file). Do not batch many files in one call. Assume one receipt
 per file: for a multi-page PDF read only the first page(s) you need (e.g. `pages: "1"`, then `"2"` if the
-total is on the next page).
+total is on the next page). If a Read with `pages` fails, retry the same Read without the `pages` parameter.
 
 Extract six fields per file:
 
@@ -101,12 +111,25 @@ Reading tips:
 - Receipts: information may be at the right edge, the bottom, or on a second page.
 - 登録番号: look for a number starting with `T` near the store name or at the bottom, often in red or blue.
   It must be `T` + exactly 13 digits.
+- 登録番号がない: if the receipt genuinely has no registration number printed (common on 手書き領収証 and
+  small shops), write `reg_no` = `記載なし` — not `読み取りエラー` and not in `needs_review`.
+  Use `読み取りエラー` only when a number is printed but you cannot read it.
 - 元号: 令和 → 西暦 = 令和年 + 2018 (R7 = 令和7年 = 2025, R6 = 2024). 平成 + 1988.
 - 金額: use the tax-included total (合計 / 領収金額 / お会計), not 小計 or お預り / お釣り.
 - 税率: if both 10% and 8% items appear (e.g. 軽減税率 ※ marks), write `複数税率`.
-- 支払区分: look for お預り/現金, クレジット/カード会社名, PayPay, iD, QUICPay, Suica 等. If nothing is
-  shown on a handwritten 領収証, `現金` is usual but mark it for review.
+- 支払区分: look for お預り/現金, クレジット/カード会社名, PayPay, iD, QUICPay, Suica 等. If no payment
+  method is shown on the receipt (any type, handwritten or printed), write `現金`, add `payment` to
+  `needs_review` and note `支払方法の記載なし`.
+- 支払区分 cut off but identifiable (e.g. `三菱QR(PayPa`) → write the specific wallet (`PayPay`), add
+  `payment` to `needs_review` and say so in `note`.
+- 日付: if the printed date differs from the date in the file name, use the printed date, add `date` to
+  `needs_review` and note it (e.g. `ファイル名の日付と異なる`).
+- 店名: when the brand/shop name and the issuing company differ, write `ブランド/店名（会社名）`
+  (e.g. `ローソン 新宿店（株式会社ローソン）`).
+- Some receipts have rotated or sideways sections (stamps, side margins): read them too.
 - Check the arithmetic: 小計 + 消費税 should equal 合計, and 税額 ≈ 税込額 × 10/110 (or 8/108).
+  If ※/軽減 marks conflict with the arithmetic, the arithmetic wins: set `tax_rate` from it and add
+  `tax_rate` to `needs_review` with a note.
 
 Uncertainty rules:
 - **Cannot read a field at all** → write exactly `読み取りエラー` for that field. Do not guess.
@@ -144,17 +167,25 @@ session is interrupted. Format:
 ## Step 5 — Build the outputs
 
 ```
-PY "<skill dir>/scripts/build_outputs.py" --root "<root>" --readings "<root>/.receipt_readings.json"
+PY "<skill dir>/scripts/build_outputs.py" --root "<scan root>" --readings "<scan root>/.receipt_readings.json"
 ```
+
+`<scan root>` is the absolute `root` value from the Step 3 scan JSON (not the text the user typed).
 
 - Exit 0: it prints a tab-separated table (フォルダ / 件数 / 合計金額 / エラー / 要確認, last row 合計),
   then `出力:` and the full paths of the created files. The readings file is deleted automatically.
+  If stderr shows `警告: 読み取り結果ファイルを削除できませんでした`, the outputs are fine; tell the user
+  they may delete `.receipt_readings.json` themselves.
   Re-runs on the same day add `_2`, `_3` … instead of overwriting.
 - Exit 2: a file is open (usually in Excel) and cannot be written. Show the message
   (`ファイルを閉じてから再実行してください: <path>`), ask the user to close that file, and offer to run the
   same command again. The readings file is kept, so do not read the receipts again.
-- Exit 1: show the message. If it is about the readings file (not found / JSON不正 / 形式不正 / フォルダなし),
-  fix `.receipt_readings.json` (valid JSON, format above) and run again.
+- Exit 1 with `読み取り結果に含まれていないファイル:` and/or `スキャン結果にないファイル:` (lists of
+  `folder/file`): nothing was written and the readings file is kept. Read each missing file (Step 4 rules),
+  remove entries that are not in the scan, fix any misspelled `folder`/`filename`, Write the updated
+  readings file, and run the same command again.
+- Exit 1 for other reasons: show the message. If it is about the readings file (not found / JSON不正 /
+  形式不正 / フォルダなし), fix `.receipt_readings.json` (valid JSON, format above) and run again.
 
 ## Step 6 — Report
 

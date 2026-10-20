@@ -79,6 +79,10 @@ Claude Code에서 상위 폴더 경로와 함께 요청합니다.
 
 그 후 Claude Code를 다시 시작합니다. (`/plugin` 메뉴에서도 업데이트할 수 있습니다.)
 
+### 관리자용 메모
+
+새 버전을 배포할 때마다 `plugins/receipt-organizer/.claude-plugin/plugin.json`의 `"version"`을 올려 주세요(예: `0.1.0` → `0.1.1`). 버전이 그대로면 사용자가 업데이트해도 변경 사항을 받지 못합니다.
+
 ---
 
 ## 日本語
