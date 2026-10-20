@@ -1,0 +1,13 @@
+{
+  "name": "receipt-tools",
+  "owner": {
+    "name": "tokyoman"
+  },
+  "plugins": [
+    {
+      "name": "receipt-organizer",
+      "source": "./plugins/receipt-organizer",
+      "description": "領収書（PDF・画像）を個人フォルダ別に読み取り、Excel・JSON・ダッシュボードを作成"
+    }
+  ]
+}
