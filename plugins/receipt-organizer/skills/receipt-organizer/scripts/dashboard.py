@@ -10,7 +10,7 @@ PLACEHOLDER = "/*__REPORT_DATA__*/null"
 
 def _json_for_script(data):
     text = json.dumps(data, ensure_ascii=False)
-    return text.replace("</", "<\\/").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
+    return text.replace("<", "\\u003c").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
 
 
 def render_dashboard(report):

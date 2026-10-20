@@ -87,6 +87,19 @@ class ScanFolderTest(unittest.TestCase):
         self.assertEqual(bad.returncode, 1)
         self.assertTrue(bad.stderr.decode("utf-8").strip())
 
+    def test_cli_stdout_and_stderr_utf8(self):
+        import os
+        self.touch("株式会社 A/1.jpg")
+        script = str(SCRIPTS / "scan_folder.py")
+        env = dict(os.environ, PYTHONIOENCODING="ascii", PYTHONUTF8="0")
+        ok = subprocess.run([sys.executable, script, str(self.root)], capture_output=True, env=env)
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+        self.assertIn("株式会社 A", ok.stdout.decode("utf-8"))
+        bad = subprocess.run([sys.executable, script, str(self.root / "無い")],
+                             capture_output=True, env=env)
+        self.assertEqual(bad.returncode, 1)
+        self.assertIn("フォルダが見つかりません", bad.stderr.decode("utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()

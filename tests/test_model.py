@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from helpers import SCRIPTS  # noqa: E402
 
 from model import (  # noqa: E402
-    ERROR, REVIEW, build_report, normalize_receipt, output_names,
+    ERROR, build_report, normalize_receipt, output_names,
     resolve_suffix, summarize_folder,
 )
 
@@ -25,6 +25,16 @@ class ModelTest(unittest.TestCase):
             self.assertEqual(rec(v)["amount"], 6050)
         for v in ("不明", None, "", 12.5):
             self.assertEqual(rec(v)["amount"], ERROR)
+
+    def test_amount_trailing_marks_and_decimal_strings(self):
+        for v in ("¥6,050-", "6,050円－", "6050 ※", "¥6,050- ※", "6050.0", "6,050.00", "¥6,050.00-"):
+            self.assertEqual(rec(v)["amount"], 6050, v)
+        for v in ("6050.5", "-", "※", "6.050.0"):
+            self.assertEqual(rec(v)["amount"], ERROR, v)
+
+    def test_needs_review_string_treated_as_list(self):
+        r = normalize_receipt({"filename": "a.jpg", "amount": 100, "needs_review": "amount"}, 1)
+        self.assertEqual(r["needs_review"], ["amount"])
 
     def test_missing_fields_become_error_and_review_excludes_errors(self):
         r = normalize_receipt({"filename": "a.jpg", "amount": 100,
@@ -46,7 +56,6 @@ class ModelTest(unittest.TestCase):
 
     def test_date_formats(self):
         for v in ("2025-5-1", "2025.05.01", "2025/5/1"):
-            self.assertEqual(rec(1)["date"], "2025/05/01")
             r = normalize_receipt({"filename": "a.jpg", "date": v}, 1)
             self.assertEqual(r["date"], "2025/05/01")
 

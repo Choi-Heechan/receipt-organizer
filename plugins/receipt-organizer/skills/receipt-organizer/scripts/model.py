@@ -9,6 +9,7 @@ FIELDS = ("date", "store", "reg_no", "amount", "tax_rate", "payment")
 
 _DATE_RE = re.compile(r"^\s*(\d{4})[/\-.](\d{1,2})[/\-.](\d{1,2})\s*$")
 _STRIP_AMOUNT = re.compile(r"[¥￥,，円\s]")
+_TRAILING_MARKS = re.compile(r"[\s\-－※]+$")
 _BAD_NAME_CHARS = re.compile(r'[\\/:*?"<>|]')
 
 
@@ -35,9 +36,10 @@ def _norm_amount(value):
     if isinstance(value, float):
         return int(value) if value.is_integer() else ERROR
     if isinstance(value, str):
-        s = _STRIP_AMOUNT.sub("", value)
-        if re.fullmatch(r"-?\d+", s):
-            return int(s)
+        s = _STRIP_AMOUNT.sub("", _TRAILING_MARKS.sub("", value))
+        m = re.fullmatch(r"(-?\d+)(?:\.0+)?", s)
+        if m:
+            return int(m.group(1))
     return ERROR
 
 
@@ -56,7 +58,10 @@ def normalize_receipt(raw, no):
         out[f] = _norm_text(raw.get(f))
     out["amount"] = _norm_amount(raw.get("amount"))
     note = str(raw.get("note") or "")
-    review = [f for f in (raw.get("needs_review") or []) if f in FIELDS]
+    review = raw.get("needs_review") or []
+    if isinstance(review, str):
+        review = [review]
+    review = [f for f in review if f in FIELDS]
     if out["date"] == ERROR:
         m = re.match(r"(\d{4})(\d{2})(\d{2})", filename)
         guessed = _valid_date(*m.groups()) if m else None

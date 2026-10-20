@@ -65,6 +65,11 @@ def scan(root):
 
 
 def main(argv):
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
     if len(argv) != 1:
         sys.stderr.write("使い方: scan_folder.py <フォルダ>\n")
         return 1
@@ -72,7 +77,6 @@ def main(argv):
     if not root.is_dir():
         sys.stderr.write("フォルダが見つかりません: %s\n" % argv[0])
         return 1
-    sys.stdout.reconfigure(encoding="utf-8")
     sys.stdout.write(json.dumps(scan(root), ensure_ascii=False, indent=2) + "\n")
     return 0
 
