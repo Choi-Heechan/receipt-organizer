@@ -1,6 +1,6 @@
 {
   "name": "receipt-organizer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "領収書（PDF・画像）を個人フォルダ別に読み取り、Excel・JSON・ダッシュボードを作成",
   "author": {
     "name": "tokyoman"

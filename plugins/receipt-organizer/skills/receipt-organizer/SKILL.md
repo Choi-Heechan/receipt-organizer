@@ -2,11 +2,11 @@
 name: receipt-organizer
 description: |
   領収書・レシート（PDF・JPG・PNG）を個人フォルダ別に読み取り、個人別Excel・合計Excel・JSON・ダッシュボードHTMLを作成するスキル。
-  上位フォルダ（その下に個人フォルダがある）のパスを指定して使う（상위 폴더 경로를 지정해서 실행）。
+  上位フォルダ（その下に個人フォルダがある）のパスを指定するか、そのフォルダに移動してから実行する（상위 폴더 경로를 지정하거나 그 폴더로 이동한 뒤 실행）。
   トリガー（韓国語）：「영수증 정리」「영수증 처리」「영수증 엑셀로」
   トリガー（日本語）：「領収書処理」「領収書をまとめて」「レシートをExcelに」
   ユーザーが領収書・レシート・영수증の読み取り・整理・まとめ・Excel化を求めたら、このスキルを使うこと。
-  Use when the user asks to organize receipts in a folder, e.g. 「영수증 정리해줘 C:\...\領収書_2026年10月」.
+  Use when the user asks to organize receipts in a folder, e.g. 「영수증 정리해줘 C:\...\領収書_2026年10月」, or just 「영수증 처리해줘」 inside that folder.
 ---
 
 # Receipt organizer
@@ -26,7 +26,11 @@ Japanese; translate them to Korean if the user writes Korean.
 
 ## Step 1 — Get the folder
 
-- If the user did not give a folder path, ask for it and wait. Do not search the disk for receipt folders.
+- If the user gave a folder path, use it as `<root>`.
+- If the user did not give a path, use the **current working directory** as `<root>` (the user may have
+  moved there before asking, e.g. `cd` then 「영수증 처리해줘」). Get its absolute path with `pwd` (Git Bash /
+  Mac) or `(Get-Location).Path` (PowerShell). This is tentative until confirmed in Step 3.
+- Never search the disk for other receipt folders.
 - Expected layout: `<root>/<person folder>/<receipt files>` (deeper subfolders count as that person's files).
   If `<root>` has no subfolders, `<root>` itself is treated as one person.
 
@@ -74,10 +78,19 @@ It prints JSON:
 - A folder with `files: []` also appears in `empty_folders`. **Skip folders with no files**: do not read
   them and do not put them in the readings file.
 - Exit code 1 means the folder does not exist: show the message and ask for the correct path.
-- If no folder has any files, tell the user there is nothing to process and stop.
+- If no folder has any files, tell the user there is nothing to process and stop (in current-folder mode,
+  ask for the folder path instead — see below).
 
 Tell the user briefly what you found, e.g. 「3 フォルダ・合計 24 ファイルを読み取ります。」 Keep the scan
 JSON for the final report (`empty_folders`, `skipped`, `loose_files`).
+
+**Current-folder mode (no path given in Step 1).** Before reading anything, show the absolute `<root>` and the
+counts, and ask for confirmation, then wait:
+
+> `<root>` フォルダで、個人フォルダ N 個・領収書 M 件が見つかりました。このフォルダで処理しますか？
+
+Continue only after the user agrees. If they decline, or if no folder has any files, ask for the folder path
+and restart from Step 3 with that path.
 
 ## Step 4 — Read every receipt
 
