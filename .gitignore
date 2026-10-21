@@ -11,3 +11,4 @@ __pycache__/
 receipt_*.json
 dashboard_[0-9]*.html
 .receipt_readings.json
+!guide/*.pdf

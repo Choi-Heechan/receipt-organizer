@@ -5,6 +5,7 @@
 
 - [한국어](#한국어)
 - [日本語](#日本語)
+- 사용 안내서 / 利用ガイド (PDF): [guide/receipt-organizer-guide.pdf](guide/receipt-organizer-guide.pdf)
 
 ---
 

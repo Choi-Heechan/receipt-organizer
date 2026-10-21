@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>영수증 정리 플러그인 사용 안내 / 領収書整理プラグイン 利用ガイド</title>
+<style>
+  :root { --ink:#1f2937; --muted:#6b7280; --line:#d1d5db; --accent:#1F4E79; --soft:#eef3f8; --red:#FFE0E0; --yellow:#FFF2A0; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#fff; color:var(--ink); font-family:"Hiragino Sans","Yu Gothic","Meiryo","Apple SD Gothic Neo","Malgun Gothic",sans-serif; font-size:10.5pt; line-height:1.65; }
+  main { max-width:760px; margin:0 auto; padding:28px 32px; }
+  h1 { font-size:20pt; color:var(--accent); margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 18px; }
+  h2 { font-size:13.5pt; color:var(--accent); border-bottom:2px solid var(--accent); padding-bottom:3px; margin:22px 0 8px; }
+  h3 { font-size:11pt; margin:14px 0 4px; }
+  p, ul, ol { margin:4px 0 8px; }
+  li { margin:2px 0; }
+  code, pre { font-family:"SF Mono",Consolas,"Courier New",monospace; font-size:9.5pt; }
+  code { background:var(--soft); padding:1px 4px; border-radius:3px; }
+  pre { background:var(--soft); border:1px solid var(--line); border-radius:6px; padding:8px 12px; margin:6px 0 10px; white-space:pre-wrap; }
+  table { border-collapse:collapse; width:100%; margin:6px 0 10px; font-size:9.8pt; }
+  th, td { border:1px solid var(--line); padding:4px 8px; text-align:left; vertical-align:top; }
+  th { background:var(--accent); color:#fff; font-weight:600; }
+  .box { border:1px solid var(--line); border-left:4px solid var(--accent); background:var(--soft); padding:8px 12px; border-radius:4px; margin:8px 0; }
+  .warn { border-left-color:#c2410c; background:#fff7ed; }
+  .chip { display:inline-block; padding:0 6px; border-radius:3px; font-weight:600; }
+  .red { background:var(--red); color:#CC0000; }
+  .yellow { background:var(--yellow); }
+  .lang { display:inline-block; background:var(--accent); color:#fff; border-radius:4px; padding:1px 8px; font-size:9pt; margin-bottom:6px; }
+  .page-break { break-before:page; }
+  h2, h3 { break-after:avoid; }
+  pre, table, .box { break-inside:avoid; }
+  @page { size:A4; margin:14mm 12mm; }
+  @media print { main { padding:0; max-width:none; } }
+</style>
+</head>
+<body>
+<main>
+
+<span class="lang">한국어</span>
+<h1>영수증 정리 플러그인 사용 안내</h1>
+<p class="sub">receipt-organizer · Claude Code 플러그인 · 버전 0.1.1</p>
+
+<h2>1. 무엇을 해 주나요</h2>
+<p>사람별 폴더에 모아 둔 영수증(PDF·JPG·PNG)을 Claude가 읽어서, 상위 폴더에 아래 파일을 만들어 줍니다. (YYYYMMDD = 실행한 날짜)</p>
+<table>
+  <tr><th>파일</th><th>내용</th></tr>
+  <tr><td><code>receipt_&lt;폴더명&gt;_YYYYMMDD.xlsx</code></td><td>사람별 영수증 목록 (날짜·상호·등록번호·금액·세율·결제 수단·비고)</td></tr>
+  <tr><td><code>list_receipt_YYYYMMDD.xlsx</code></td><td>폴더별 건수·합계 금액·오류 건수 요약</td></tr>
+  <tr><td><code>dashboard_YYYYMMDD.html</code></td><td>더블클릭하면 브라우저에서 열리는 사람별 카드 화면 (인터넷 불필요)</td></tr>
+  <tr><td><code>receipt_YYYYMMDD.json</code></td><td>전체 결과 데이터 (다른 프로그램 연동용)</td></tr>
+</table>
+
+<h2>2. 준비물</h2>
+<ul>
+  <li><b>Claude 유료 요금제(Pro 이상)</b>와 <b>Claude Code</b> — Claude 데스크톱 앱의 「Code」 탭 또는 터미널의 <code>claude</code> 명령. Windows·Mac 모두 사용할 수 있습니다.</li>
+  <li><b>Python 3</b> — 처음 실행할 때 Claude가 자동으로 확인하고, 없으면 설치 방법을 안내합니다(아래 7번).</li>
+  <li>GitHub 계정은 <b>필요 없습니다</b>.</li>
+</ul>
+
+<h2>3. 설치 (처음 한 번)</h2>
+<p>Claude Code 대화창에 아래 두 줄을 차례로 입력합니다.</p>
+<pre>/plugin marketplace add Choi-Heechan/receipt-organizer
+/plugin install receipt-organizer@receipt-tools</pre>
+<p>설치가 끝나면 <b>Claude Code를 다시 시작(새 세션)</b>해 주세요.</p>
+<div class="box warn">예전에 받은 <code>receipt-processor</code> 스킬이 있다면 호출 문구가 겹칩니다. claude.ai → 사용자 지정 → Skills → 내 항목에서 꺼 주세요.</div>
+
+<h2>4. 폴더 준비</h2>
+<pre>영수증_2026년10월/          ← 상위 폴더 (실행할 때 지정)
+├── 홍길동/                 ← 사람별 폴더
+│   ├── 20261003_택시.jpg
+│   └── 20261005_식당.pdf
+└── 김철수/
+    └── ...</pre>
+<ul>
+  <li>지원 형식: <code>.jpg .jpeg .png .pdf</code> — 아이폰 사진(HEIC)은 처리되지 않으니 JPG로 저장해 주세요.</li>
+  <li>파일 1개 = 영수증 1장으로 처리합니다. 여러 장을 한 PDF에 넣지 마세요.</li>
+  <li>파일명 앞에 날짜(예: <code>20261003_</code>)를 붙여 두면, 날짜를 못 읽었을 때 참고로 사용합니다.</li>
+  <li>사람별 폴더 안의 하위 폴더도 그 사람 영수증으로 처리합니다. 상위 폴더에 바로 놓인 영수증은 처리하지 않습니다.</li>
+</ul>
+
+<h2>5. 실행</h2>
+<h3>방법 A — 경로를 함께 입력</h3>
+<pre>영수증 정리해줘 C:\Users\...\영수증_2026년10월</pre>
+<h3>방법 B — 상위 폴더에서 실행</h3>
+<p>데스크톱 앱에서는 상위 폴더를 작업 폴더로 열고, 터미널에서는 상위 폴더로 <code>cd</code> 한 뒤 <code>claude</code>를 실행합니다. 그리고:</p>
+<pre>영수증 처리해줘</pre>
+<p>Claude가 「개인 폴더 N개, 영수증 M건을 찾았습니다. 진행할까요?」라고 확인합니다. 영수증 수에 따라 몇 분 정도 걸립니다.</p>
+
+<h2>6. 결과 확인</h2>
+<ul>
+  <li>끝나면 채팅에 폴더별 건수·합계 금액 표와 만들어진 파일 경로가 나옵니다.</li>
+  <li><span class="chip red">読み取りエラー</span> (빨강): 읽지 못한 칸입니다. 금액이 오류면 합계에서 빠집니다 — 원본을 보고 직접 입력해 주세요.</li>
+  <li><span class="chip yellow">要確認</span> (노랑): 읽었지만 확인이 필요한 칸입니다(흐림·날짜 불일치 등). 합계에는 포함됩니다. 이유는 「備考」 열에 적혀 있습니다.</li>
+  <li>등록번호가 원래 없는 영수증은 <code>記載なし</code>로 표시됩니다(오류 아님).</li>
+  <li>같은 날 다시 실행하면 기존 파일을 덮어쓰지 않고 <code>_2</code>, <code>_3</code>을 붙여 새로 만듭니다.</li>
+</ul>
+
+<h2>7. Python이 없다고 나올 때</h2>
+<ul>
+  <li><b>Windows</b>: Claude가 <code>winget install Python.Python.3.12</code> 실행을 제안합니다. 「예」라고 하면 설치합니다. winget이 안 되면 python.org에서 설치하고 첫 화면의 「Add python.exe to PATH」에 체크하세요. 설치 후 Claude를 다시 시작해야 인식될 수 있습니다.</li>
+  <li><b>Mac</b>: 터미널에서 <code>xcode-select --install</code>을 실행하거나, macOS가 띄우는 설치 창을 따라 주세요.</li>
+</ul>
+
+<h2>8. 자주 있는 상황</h2>
+<table>
+  <tr><th>상황</th><th>해결</th></tr>
+  <tr><td>「ファイルを閉じてから再実行してください」</td><td>Excel에서 해당 파일을 닫고 「다시 실행해줘」라고 말해 주세요.</td></tr>
+  <tr><td>도중에 끊겼다</td><td>다시 실행하면 「이어서 할까요?」라고 묻습니다. 이어서 하면 이미 읽은 폴더는 건너뜁니다.</td></tr>
+  <tr><td>「読み取り結果に含まれていないファイル」</td><td>빠진 영수증이 있다는 뜻입니다. Claude가 그 파일을 읽고 다시 만듭니다(합계 누락 방지).</td></tr>
+  <tr><td>처리되지 않은 파일이 있다고 나옴</td><td>빈 폴더·HEIC 등 미지원 형식·상위 폴더에 바로 둔 파일입니다. 형식이나 위치를 고쳐 다시 실행하세요.</td></tr>
+</table>
+
+<h2>9. 업데이트</h2>
+<pre>/plugin marketplace update receipt-tools</pre>
+<p>입력 후 Claude Code를 다시 시작하면 새 버전이 적용됩니다.</p>
+
+<h2>10. 개인정보</h2>
+<p>결과 파일은 모두 내 PC의 지정 폴더에만 저장됩니다. 이 플러그인은 별도 서버나 외부 OCR 서비스로 데이터를 보내지 않습니다. 다만 영수증 이미지는 판독을 위해 <b>Claude(Anthropic)에게 전달</b>됩니다 — 평소 Claude에 파일을 보여 주는 것과 같은 방식입니다.</p>
+
+<!-- ===================== 日本語 ===================== -->
+<div class="page-break"></div>
+<span class="lang">日本語</span>
+<h1>領収書整理プラグイン 利用ガイド</h1>
+<p class="sub">receipt-organizer · Claude Code プラグイン · バージョン 0.1.1</p>
+
+<h2>1. できること</h2>
+<p>個人フォルダに入れた領収書（PDF・JPG・PNG）を Claude が読み取り、上位フォルダに次のファイルを作成します（YYYYMMDD＝実行日）。</p>
+<table>
+  <tr><th>ファイル</th><th>内容</th></tr>
+  <tr><td><code>receipt_&lt;フォルダ名&gt;_YYYYMMDD.xlsx</code></td><td>個人別の領収書一覧（日付・店名・登録番号・金額・税率・支払区分・備考）</td></tr>
+  <tr><td><code>list_receipt_YYYYMMDD.xlsx</code></td><td>フォルダ別の件数・合計金額・エラー件数のまとめ</td></tr>
+  <tr><td><code>dashboard_YYYYMMDD.html</code></td><td>ダブルクリックでブラウザに表示される個人別カード画面（インターネット不要）</td></tr>
+  <tr><td><code>receipt_YYYYMMDD.json</code></td><td>全結果データ（他システム連携用）</td></tr>
+</table>
+
+<h2>2. 必要なもの</h2>
+<ul>
+  <li><b>Claude 有料プラン（Pro 以上）</b>と <b>Claude Code</b> — Claude デスクトップアプリの「Code」タブ、またはターミナルの <code>claude</code> コマンド。Windows・Mac どちらでも使えます。</li>
+  <li><b>Python 3</b> — 初回実行時に Claude が自動で確認し、なければインストール方法を案内します（下記 7）。</li>
+  <li>GitHub アカウントは<b>不要</b>です。</li>
+</ul>
+
+<h2>3. インストール（初回のみ）</h2>
+<p>Claude Code の入力欄に次の 2 行を順に入力します。</p>
+<pre>/plugin marketplace add Choi-Heechan/receipt-organizer
+/plugin install receipt-organizer@receipt-tools</pre>
+<p>インストール後、<b>Claude Code を再起動（新しいセッション）</b>してください。</p>
+<div class="box warn">以前の <code>receipt-processor</code> スキルがある場合は呼び出しの言葉が重なります。claude.ai → カスタマイズ → Skills → 自分の項目 でオフにしてください。</div>
+
+<h2>4. フォルダの準備</h2>
+<pre>領収書_2026年10月/          ← 上位フォルダ（実行時に指定）
+├── 山田太郎/               ← 個人フォルダ
+│   ├── 20261003_タクシー.jpg
+│   └── 20261005_会食.pdf
+└── 佐藤花子/
+    └── ...</pre>
+<ul>
+  <li>対応形式：<code>.jpg .jpeg .png .pdf</code> — iPhone の写真（HEIC）は処理されないので JPG で保存してください。</li>
+  <li>1 ファイル＝領収書 1 枚として処理します。複数枚を 1 つの PDF にまとめないでください。</li>
+  <li>ファイル名の先頭に日付（例：<code>20261003_</code>）を付けておくと、日付が読めないときの参考にします。</li>
+  <li>個人フォルダ内のサブフォルダもその人の領収書として処理します。上位フォルダに直接置いた領収書は処理しません。</li>
+</ul>
+
+<h2>5. 実行</h2>
+<h3>方法 A — パスを一緒に入力</h3>
+<pre>領収書をまとめて C:\Users\...\領収書_2026年10月</pre>
+<h3>方法 B — 上位フォルダで実行</h3>
+<p>デスクトップアプリでは上位フォルダを作業フォルダとして開き、ターミナルでは上位フォルダに <code>cd</code> してから <code>claude</code> を起動します。そして：</p>
+<pre>領収書処理して</pre>
+<p>Claude が「個人フォルダ N 個・領収書 M 件が見つかりました。処理しますか？」と確認します。件数によって数分かかります。</p>
+
+<h2>6. 結果の確認</h2>
+<ul>
+  <li>完了すると、チャットにフォルダ別の件数・合計金額の表と作成ファイルのパスが表示されます。</li>
+  <li><span class="chip red">読み取りエラー</span>（赤）：読み取れなかった項目です。金額がエラーの場合は合計に含まれません。原本を見て手入力してください。</li>
+  <li><span class="chip yellow">要確認</span>（黄）：読み取ったが確認が必要な項目です（かすれ・日付の不一致など）。合計には含まれます。理由は「備考」列にあります。</li>
+  <li>登録番号の記載がない領収書は <code>記載なし</code> と表示されます（エラーではありません）。</li>
+  <li>同じ日に再実行すると上書きせず、<code>_2</code>、<code>_3</code> を付けて新しく作成します。</li>
+</ul>
+
+<h2>7. Python が見つからないと表示されたら</h2>
+<ul>
+  <li><b>Windows</b>：Claude が <code>winget install Python.Python.3.12</code> の実行を提案します。「はい」と答えるとインストールします。winget が使えない場合は python.org からインストールし、最初の画面で「Add python.exe to PATH」にチェックしてください。インストール後は Claude の再起動が必要な場合があります。</li>
+  <li><b>Mac</b>：ターミナルで <code>xcode-select --install</code> を実行するか、macOS が表示するインストール画面に従ってください。</li>
+</ul>
+
+<h2>8. よくあるケース</h2>
+<table>
+  <tr><th>状況</th><th>対処</th></tr>
+  <tr><td>「ファイルを閉じてから再実行してください」</td><td>Excel で該当ファイルを閉じて「もう一度実行して」と伝えてください。</td></tr>
+  <tr><td>途中で中断した</td><td>再実行すると「続きから再開しますか？」と聞かれます。再開すると読み取り済みのフォルダはスキップします。</td></tr>
+  <tr><td>「読み取り結果に含まれていないファイル」</td><td>読み漏れがあるという意味です。Claude がそのファイルを読んで作り直します（合計の漏れ防止）。</td></tr>
+  <tr><td>処理されなかったファイルがあると表示される</td><td>空のフォルダ・HEIC など未対応形式・上位フォルダに直接置いたファイルです。形式や場所を直して再実行してください。</td></tr>
+</table>
+
+<h2>9. アップデート</h2>
+<pre>/plugin marketplace update receipt-tools</pre>
+<p>入力後に Claude Code を再起動すると新しいバージョンが適用されます。</p>
+
+<h2>10. 個人情報について</h2>
+<p>結果ファイルはすべて自分の PC の指定フォルダにだけ保存されます。このプラグインは別のサーバーや外部 OCR サービスにデータを送りません。ただし領収書の画像は読み取りのため <b>Claude（Anthropic）に送られます</b> — 普段 Claude にファイルを見せるのと同じ方法です。</p>
+
+</main>
+</body>
+</html>
